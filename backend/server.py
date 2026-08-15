@@ -188,6 +188,24 @@ class AdminLoginIn(BaseModel):
     password: str
 
 
+# ---- Period Tracker Models ------------------------------------------------
+class PeriodSignupIn(BaseModel):
+    email: str = Field(min_length=3, max_length=200)
+    password: str = Field(min_length=6, max_length=128)
+
+
+class PeriodEntryIn(BaseModel):
+    start_date: str  # ISO date (YYYY-MM-DD)
+    end_date: Optional[str] = None
+    flow: Optional[str] = None  # light | medium | heavy
+    notes: Optional[str] = Field(default=None, max_length=300)
+
+
+class PeriodEntryOut(PeriodEntryIn):
+    id: str
+    created_at: str
+
+
 # ---- Helpers ---------------------------------------------------------------
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -272,6 +290,23 @@ def strip_exif(raw: bytes) -> bytes:
 def create_admin_token(email: str) -> str:
     payload = {"sub": email, "role": "admin", "exp": datetime.now(timezone.utc) + timedelta(hours=12)}
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+
+def create_period_token(user_id: str) -> str:
+    payload = {"sub": user_id, "role": "period", "exp": datetime.now(timezone.utc) + timedelta(days=30)}
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+
+def require_period_user(creds: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    if creds is None:
+        raise HTTPException(401, "Missing token")
+    try:
+        payload = jwt.decode(creds.credentials, JWT_SECRET, algorithms=["HS256"])
+        if payload.get("role") != "period":
+            raise HTTPException(403, "Not a period-tracker token")
+        return payload["sub"]
+    except jwt.PyJWTError:
+        raise HTTPException(401, "Invalid or expired token")
 
 
 def require_admin(creds: HTTPAuthorizationCredentials = Depends(security)) -> str:
@@ -556,6 +591,128 @@ async def delete_knowledge(item_id: str, _: str = Depends(require_admin)):
     if res.deleted_count == 0:
         raise HTTPException(404, "Knowledge item not found")
     return {"ok": True}
+
+
+# ---- Period Tracker (single opt-in account feature) ------------------------
+def _parse_iso_date(s: str):
+    try:
+        return datetime.fromisoformat(s).date()
+    except Exception:
+        raise HTTPException(400, "start_date/end_date must be YYYY-MM-DD")
+
+
+@api.post("/period/signup")
+async def period_signup(body: PeriodSignupIn):
+    email = body.email.strip().lower()
+    if "@" not in email or "." not in email:
+        raise HTTPException(400, "Please provide a valid email address.")
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        raise HTTPException(409, "An account with that email already exists.")
+    user_id = str(uuid.uuid4())
+    await db.users.insert_one({
+        "id": user_id,
+        "email": email,
+        "password_hash": bcrypt.hash(body.password),
+        "created_at": now_iso(),
+    })
+    return {"token": create_period_token(user_id), "email": email, "user_id": user_id}
+
+
+@api.post("/period/login")
+async def period_login(body: PeriodSignupIn):
+    email = body.email.strip().lower()
+    user = await db.users.find_one({"email": email})
+    if not user or not bcrypt.verify(body.password, user["password_hash"]):
+        raise HTTPException(401, "Invalid email or password")
+    return {"token": create_period_token(user["id"]), "email": email, "user_id": user["id"]}
+
+
+@api.get("/period/me")
+async def period_me(user_id: str = Depends(require_period_user)):
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    if not user:
+        raise HTTPException(404, "Account not found")
+    return user
+
+
+@api.get("/period/entries")
+async def period_entries(user_id: str = Depends(require_period_user)):
+    docs = await db.period_entries.find(
+        {"user_id": user_id}, {"_id": 0, "user_id": 0}
+    ).sort("start_date", -1).to_list(500)
+    return {"entries": docs}
+
+
+@api.post("/period/entries", response_model=PeriodEntryOut)
+async def period_entry_create(body: PeriodEntryIn, user_id: str = Depends(require_period_user)):
+    start = _parse_iso_date(body.start_date)
+    end = _parse_iso_date(body.end_date) if body.end_date else None
+    if end and end < start:
+        raise HTTPException(400, "end_date must be on or after start_date")
+    entry = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "start_date": start.isoformat(),
+        "end_date": end.isoformat() if end else None,
+        "flow": body.flow,
+        "notes": (body.notes or "")[:300],
+        "created_at": now_iso(),
+    }
+    await db.period_entries.insert_one(entry)
+    entry.pop("user_id", None)
+    return entry
+
+
+@api.delete("/period/entries/{entry_id}")
+async def period_entry_delete(entry_id: str, user_id: str = Depends(require_period_user)):
+    res = await db.period_entries.delete_one({"id": entry_id, "user_id": user_id})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Entry not found")
+    return {"ok": True}
+
+
+@api.get("/period/prediction")
+async def period_prediction(user_id: str = Depends(require_period_user)):
+    docs = await db.period_entries.find(
+        {"user_id": user_id}, {"_id": 0, "start_date": 1, "end_date": 1}
+    ).sort("start_date", 1).to_list(500)
+    if not docs:
+        return {"has_data": False, "message": "Log at least one period to see predictions."}
+
+    starts = [datetime.fromisoformat(d["start_date"]).date() for d in docs]
+    # Cycle lengths between consecutive starts
+    cycles = [(starts[i] - starts[i - 1]).days for i in range(1, len(starts)) if 15 <= (starts[i] - starts[i - 1]).days <= 60]
+    avg_cycle = round(sum(cycles) / len(cycles)) if cycles else 28
+
+    # Period length estimate
+    lengths = []
+    for d in docs:
+        if d.get("end_date"):
+            try:
+                lengths.append((datetime.fromisoformat(d["end_date"]).date() - datetime.fromisoformat(d["start_date"]).date()).days + 1)
+            except Exception:
+                pass
+    avg_period_length = round(sum(lengths) / len(lengths)) if lengths else 5
+
+    last_start = starts[-1]
+    next_start = last_start + timedelta(days=avg_cycle)
+    ovulation = next_start - timedelta(days=14)
+    fertile_start = ovulation - timedelta(days=5)
+    fertile_end = ovulation + timedelta(days=1)
+
+    return {
+        "has_data": True,
+        "avg_cycle_length": avg_cycle,
+        "avg_period_length": avg_period_length,
+        "last_period_start": last_start.isoformat(),
+        "next_period_start": next_start.isoformat(),
+        "predicted_ovulation": ovulation.isoformat(),
+        "fertile_window_start": fertile_start.isoformat(),
+        "fertile_window_end": fertile_end.isoformat(),
+        "entries_logged": len(starts),
+        "note": "Predictions are estimates based on your logged history and are for information only.",
+    }
 
 
 app.include_router(api)

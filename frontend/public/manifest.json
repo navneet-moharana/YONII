@@ -1,0 +1,17 @@
+{
+  "name": "YONII — Your private sexual-health companion",
+  "short_name": "YONII",
+  "description": "Anonymous sexual-health and reproductive-health companion for adults 18+.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAFAF8",
+  "theme_color": "#2B4434",
+  "categories": ["health", "medical", "lifestyle"],
+  "icons": [
+    { "src": "/yonii-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/yonii-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

@@ -2,6 +2,7 @@ import React from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { Menu, X, ShieldCheck, HeartPulse } from "lucide-react";
 import { TID } from "@/constants/testIds";
+import InstallPrompt from "@/components/InstallPrompt";
 
 const NAV = [
   { to: "/chat", label: "Ask AI", tid: TID.nav.ask },
@@ -11,6 +12,7 @@ const NAV = [
   { to: "/hub/contraception", label: "Contraception", tid: TID.nav.contra },
   { to: "/hub/sexual-wellness", label: "Wellness", tid: TID.nav.wellness },
   { to: "/hub/relationships", label: "Relationships", tid: TID.nav.relationships },
+  { to: "/period-tracker", label: "Period Tracker", tid: "nav-period-tracker" },
   { to: "/image-check", label: "Image Check ₹9", tid: TID.nav.imageCheck, accent: true },
 ];
 
@@ -119,6 +121,7 @@ export function Footer() {
           <ul className="space-y-2 text-sm">
             <li><Link className="link-underline" to="/chat">Ask AI</Link></li>
             <li><Link className="link-underline" to="/symptom-checker">Symptom Checker</Link></li>
+            <li><Link className="link-underline" to="/period-tracker">Period Tracker</Link></li>
             <li><Link className="link-underline" to="/image-check">Image Health Check</Link></li>
           </ul>
         </div>
@@ -157,6 +160,7 @@ export default function Layout({ children }) {
       <Navbar />
       <main className="flex-1">{children}</main>
       <Footer />
+      <InstallPrompt />
     </div>
   );
 }

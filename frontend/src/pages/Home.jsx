@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, ShieldCheck, Lock, Sparkles, MessageCircle, Stethoscope, Camera } from "lucide-react";
+import { ArrowRight, ShieldCheck, Lock, Sparkles, MessageCircle, Stethoscope, Camera, CalendarDays } from "lucide-react";
 import { EXAMPLE_PROMPTS, HUB_LIST } from "@/data/hubs";
 import { TID } from "@/constants/testIds";
 import Disclaimer from "@/components/Disclaimer";
@@ -114,7 +114,7 @@ export default function Home() {
       </section>
 
       {/* Three services strip */}
-      <section className="yonii-container mt-16 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <section className="yonii-container mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link to="/chat" className="card-soft p-6 hover:border-[var(--yonii-primary)] transition">
           <MessageCircle className="w-5 h-5 text-[var(--yonii-primary)]" />
           <div className="mt-3 font-display text-lg">Anonymous AI Chat</div>
@@ -124,6 +124,11 @@ export default function Home() {
           <Stethoscope className="w-5 h-5 text-[var(--yonii-primary)]" />
           <div className="mt-3 font-display text-lg">Symptom Checker</div>
           <div className="text-sm text-[var(--yonii-muted)] mt-1">Guided questions, careful, uncertainty-aware answers.</div>
+        </Link>
+        <Link to="/period-tracker" data-testid="home-period-tracker-cta" className="card-soft p-6 hover:border-[var(--yonii-primary)] transition">
+          <CalendarDays className="w-5 h-5 text-[var(--yonii-primary)]" />
+          <div className="mt-3 font-display text-lg">Period Tracker</div>
+          <div className="text-sm text-[var(--yonii-muted)] mt-1">The one feature with a private account — cycle predictions & fertile window.</div>
         </Link>
         <Link to="/image-check" data-testid={TID.home.imageCheckCta} className="card-soft p-6 hover:border-[var(--yonii-accent)] transition bg-white">
           <Camera className="w-5 h-5 text-[var(--yonii-accent)]" />

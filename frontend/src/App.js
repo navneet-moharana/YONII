@@ -9,6 +9,7 @@ import Chat from "@/pages/Chat";
 import Hub from "@/pages/Hub";
 import SymptomChecker from "@/pages/SymptomChecker";
 import ImageCheck from "@/pages/ImageCheck";
+import PeriodTracker from "@/pages/PeriodTracker";
 import Legal from "@/pages/Legal";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -33,6 +34,7 @@ function ShellRoutes() {
         <Route path="/chat" element={<Chat />} />
         <Route path="/symptom-checker" element={<SymptomChecker />} />
         <Route path="/image-check" element={<ImageCheck />} />
+        <Route path="/period-tracker" element={<PeriodTracker />} />
         <Route path="/hub/:slug" element={<Hub />} />
         <Route path="/privacy" element={<Legal page="privacy" />} />
         <Route path="/terms" element={<Legal page="terms" />} />
