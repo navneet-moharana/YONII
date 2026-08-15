@@ -26,7 +26,9 @@ export default function AgeGate({ children }) {
            style={{ background: "radial-gradient(600px 300px at 20% 20%, rgba(43,68,52,0.12), transparent 60%), radial-gradient(500px 300px at 80% 80%, rgba(193,92,61,0.10), transparent 60%)" }} />
       <div className="relative max-w-lg w-full bg-white rounded-3xl border border-[var(--yonii-border)] p-8 md:p-10 fade-in">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-full bg-[var(--yonii-primary)] flex items-center justify-center text-white font-display font-semibold">Y</div>
+          <div className="w-11 h-11 rounded-full bg-[var(--yonii-primary)] flex items-center justify-center overflow-hidden">
+            <img src="/yonii-logo.png" alt="YONII" className="w-7 h-7 object-contain" />
+          </div>
           <div className="font-display text-xl tracking-tight">YONII</div>
         </div>
         <h1 className="font-display text-3xl md:text-4xl leading-tight tracking-tight mb-3">

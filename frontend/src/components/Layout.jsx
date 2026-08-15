@@ -23,8 +23,8 @@ export function Navbar() {
     <header className="glass-nav sticky top-0 z-40">
       <div className="yonii-container flex items-center justify-between h-16">
         <Link to="/" data-testid={TID.nav.logo} className="flex items-center gap-2 group">
-          <span className="w-8 h-8 rounded-full bg-[var(--yonii-primary)] flex items-center justify-center">
-            <HeartPulse className="w-4 h-4 text-white" strokeWidth={2} />
+          <span className="w-9 h-9 rounded-full bg-[var(--yonii-primary)] flex items-center justify-center overflow-hidden">
+            <img src="/yonii-logo.png" alt="YONII" className="w-6 h-6 object-contain" />
           </span>
           <span className="font-display font-semibold text-lg tracking-tight">
             YONII
@@ -104,7 +104,12 @@ export function Footer() {
     <footer className="mt-24 border-t border-[var(--yonii-border)] bg-[var(--yonii-surface)]">
       <div className="yonii-container py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
         <div>
-          <div className="font-display font-semibold text-lg">YONII</div>
+          <div className="flex items-center gap-2">
+            <span className="w-8 h-8 rounded-full bg-[var(--yonii-primary)] flex items-center justify-center overflow-hidden">
+              <img src="/yonii-logo.png" alt="YONII" className="w-5 h-5 object-contain" />
+            </span>
+            <div className="font-display font-semibold text-lg">YONII</div>
+          </div>
           <p className="text-sm text-[var(--yonii-muted)] mt-2 max-w-xs">
             Your private sexual-health companion. Ask. Understand. Take care.
           </p>
@@ -140,6 +145,9 @@ export function Footer() {
         <div className="yonii-container py-4 text-xs text-[var(--yonii-muted)] flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>© {new Date().getFullYear()} YONII. For adults 18+. Educational information only.</div>
           <div className="font-editorial italic">Ask. Understand. Take care.</div>
+          <div data-testid="footer-founder-credit" className="text-[11px] tracking-wide">
+            YONII is made by <span className="text-[var(--yonii-primary)] font-medium">Navneet Moharana</span> (founder)
+          </div>
         </div>
       </div>
     </footer>
