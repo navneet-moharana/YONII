@@ -1,0 +1,149 @@
+{
+  "theme": {
+    "mode": "light",
+    "rationale": "Medical-grade trust requires a clean, well-lit environment. A light theme with warm undertones prevents the harshness of purely clinical white while avoiding the dark 'incognito' vibe often associated with adult sites."
+  },
+  "typography": {
+    "fonts": {
+      "headings": {
+        "family": "Outfit",
+        "weights": ["400", "500", "700"],
+        "purpose": "Primary display and section titles. Clean, tech-forward but approachable."
+      },
+      "body": {
+        "family": "Manrope",
+        "weights": ["400", "500", "600"],
+        "purpose": "All reading content, AI chat text, and UI labels. Highly legible, trustworthy."
+      },
+      "display": {
+        "family": "Cormorant Garamond",
+        "weights": ["400", "600", "italic"],
+        "purpose": "Used sparingly for large quotes, medical disclaimers, or empathetic statements to add editorial warmth."
+      }
+    },
+    "scale_rules": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-none",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight",
+      "h3": "text-xl sm:text-2xl tracking-tight",
+      "body": "text-base leading-relaxed text-[#1A1C1A]",
+      "small": "text-sm tracking-wide text-[#5C635A]"
+    }
+  },
+  "colors": {
+    "palette": {
+      "background": "#FAFAF8",
+      "surface": "#F2F3F0",
+      "surface_elevated": "#FFFFFF",
+      "primary": "#2B4434",
+      "primary_hover": "#1E3024",
+      "accent": "#C15C3D",
+      "accent_hover": "#A64D31",
+      "text_main": "#1A1C1A",
+      "text_muted": "#5C635A",
+      "border": "#E1E3DF"
+    },
+    "rules": {
+      "text_contrast": "Ensure APCA standards. All text over primary must be pure white. Muted text must not go lighter than #5C635A on background.",
+      "accents": "Use the Muted Terracotta exclusively for the ₹9 Razorpay payment CTA, symptom warnings, or critical actions. Keep it sparse.",
+      "forbidden": "Absolutely NO purple, pink, violet, or generic AI gradients."
+    }
+  },
+  "grids": {
+    "marketing_and_hubs": {
+      "type": "TETRIS Grid",
+      "structure": "grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-8 lg:gap-12",
+      "rule": "Asymmetric placement. Mix col-span-8 for hero articles and col-span-4 for supporting content to avoid a boring, symmetric look."
+    },
+    "admin_dashboard": {
+      "type": "High Density Grid",
+      "structure": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4",
+      "rule": "Dense and compact. Utilize full height (h-full) for cards to ensure no jagged bottoms."
+    }
+  },
+  "layouts": {
+    "general": "Mobile-first approach. Use generous padding (p-8, p-12, p-24) to create a premium, unhurried atmosphere.",
+    "chat_interface": "Maximum width max-w-3xl, centered in the viewport. Use edge-to-edge soft backgrounds for AI messages, pure white for user messages to create distinction without harsh chat bubbles.",
+    "educational_hubs": "Dense grid layout for articles. No heavy drop shadows. Use 1px subtle borders or flat background contrast.",
+    "spacing_scale": "Use 2-3x standard spacing. Minimum container padding with a border is p-6 to prevent text collision."
+  },
+  "components": {
+    "buttons": {
+      "primary": "Pill-shaped (rounded-full), solid #2B4434 background, crisp white text. Hover state: slight scale down (scale-95) and darker shade.",
+      "secondary": "Pill-shaped (rounded-full), transparent background, 1px border of #E1E3DF, text #1A1C1A. Hover: bg-[#F2F3F0]."
+    },
+    "cards": {
+      "style": "Cardless or completely flat. Use #F2F3F0 backgrounds with border-radius of 16px (rounded-2xl) or 24px. No shadows. 1px border (#E1E3DF) optional for structure."
+    },
+    "inputs": {
+      "style": "Minimalist. Soft filled (bg-[#F2F3F0]) with rounded-xl. Focus state: border-[#2B4434] ring-0."
+    },
+    "shadcn_overrides": {
+      "dialog": "Remove typical sharp white boxes. Add soft rounded corners (rounded-3xl), bg-[#FAFAF8], heavy backdrop blur (backdrop-blur-xl bg-black/40) for overlay."
+    }
+  },
+  "visual_enhancers": {
+    "textures": "Apply a 2% opacity SVG noise overlay across the entire app background to kill digital flatness and enhance the organic feel.",
+    "glassmorphism": "Used only for the sticky top navigation (backdrop-blur-xl bg-[#FAFAF8]/80) to maintain context while scrolling.",
+    "borders": "Avoid heavy shadows. Rely on 1px borders (#E1E3DF) for defining sections and creating 'Optical Clarity'."
+  },
+  "motion": {
+    "scrolling": "Implement Lenis for smooth, momentum-based scrolling to make the site feel premium.",
+    "interactions": "All buttons and cards must have a 0.2s ease transform on hover.",
+    "entrances": "Staggered fade-up animations for educational hub grids and list items."
+  },
+  "accessibility": {
+    "focus_states": "All interactive elements must have focus-visible:ring-2 focus-visible:ring-[#2B4434] focus-visible:ring-offset-2.",
+    "aria": "Include aria-labels for all icon-only buttons. The AI chat must announce new messages to screen readers via aria-live.",
+    "testing": "All interactive and key informational elements MUST include a data-testid attribute in kebab-case format (e.g., data-testid='age-gate-confirm-button')."
+  },
+  "media": {
+    "image_strategy": "STRICTLY abstract organic shapes. NO provocative imagery, NO generic medical stock photos (no stethoscopes or doctors pointing). Use flowing 3D forms, soft ribbons, and minimal calm nature textures to evoke a sense of bodily wellness implicitly.",
+    "image_urls": {
+      "hero_background": {
+        "url": "https://images.unsplash.com/photo-1714636608872-048fc9231892?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHw0fHxhYnN0cmFjdCUyMG9yZ2FuaWMlMjBzaGFwZXMlMjBjYWxtfGVufDB8fHx8MTc4Njc3NzQ0N3ww&ixlib=rb-4.1.0&q=85",
+        "description": "White wavy organic design. Use as a subtle hero background or behind the main AI chat prompt area.",
+        "category": "Hero Section / Background"
+      },
+      "wellness_hub_accent": {
+        "url": "https://images.unsplash.com/photo-1755502046743-78265e184cc3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwzfHxhYnN0cmFjdCUyMG9yZ2FuaWMlMjBzaGFwZXMlMjBjYWxtfGVufDB8fHx8MTc4Njc3NzQ0N3ww&ixlib=rb-4.1.0&q=85",
+        "description": "Abstract pastel ribbons. Use for Sexual Wellness and Relationship hub headers to add a touch of warmth.",
+        "category": "Educational Hubs"
+      },
+      "symptom_checker_bg": {
+        "url": "https://images.unsplash.com/photo-1547623641-d2c56c03e2a7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDZ8MHwxfHNlYXJjaHwxfHxjYWxtJTIwbmF0dXJlJTIwdGV4dHVyZSUyMG5ldXRyYWx8ZW58MHx8fHwxNzg2Nzc3NDQ3fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Abstract gradient sky. Use as the background for the ₹9 Image Health Check payment wall to create a calm, reassuring environment before a medical check.",
+        "category": "Payment / Health Check"
+      }
+    }
+  },
+  "3d_libraries": {
+    "recommendation": "Use Framer Motion for 2.5D staggered list animations. Avoid heavy 3D canvases (like Three.js) to keep the app blazing fast, especially since symptom checkers and chat need instant mobile load times.",
+    "usage": "Implement subtle parallax scrolling on the marketing pages for depth."
+  },
+  "pages": {
+    "home": "Hero section with large Outfit typography, anonymous chat prompt box front-and-center. Bento grid below highlighting the 5 educational hubs. Use abstract backgrounds.",
+    "ai_chat": "Clean, distraction-free view. Sidebar with chat history (stored locally). Main area focused on text readability. Include 'Medical Disclaimer' banner persistently at the top.",
+    "image_health_check": "Upload zone with abstract calm background. Trust markers (Privacy Lock icon, 'Zero Data Retention' badge). Razorpay ₹9 checkout card prominently displayed with Terracotta accent button.",
+    "educational_hub": "Grid of articles. Filter pills at the top. Use 'TETRIS' Grid mode to make reading lists visually interesting.",
+    "admin_dashboard": "Density-focused High Density Grid (grid-cols-4). Sharp edges, flat surfaces, #FFFFFF cards on #F2F3F0 background. Use Recharts for usage stats."
+  },
+  "instructions_to_main_agent": [
+    "NEVER use Inter, Roboto, or standard Tailwind default fonts for headings. Implement Outfit and Manrope via Google Fonts.",
+    "NEVER use generic purple gradients. Stick strictly to the Forest Green, Soft Sage, and Terracotta palette.",
+    "Implement the layout entirely using Tailwind CSS, avoiding over-reliance on heavy Shadcn layout wrappers. Use Shadcn strictly for interactive logic (Dialogs, Selects, Forms).",
+    "Ensure the 18+ age-gate modal loads immediately on first visit (store state in localStorage) and uses the 'Glassmorphism' blur over the app. It must be impossible to bypass without clicking 'I am 18+'.",
+    "Do not add typical 'chat bot' robotic icons. Use minimalist geometric shapes (like a simple circle, asterisk, or sophisticated medical cross variant) to represent the AI.",
+    "For the ₹9 payment flow, design a highly trustworthy, medical-grade checkout card. Use shield and lock icons to emphasize privacy. Add the 'Zero Data Retention' copy.",
+    "Keep all imagery completely abstract. Do not generate or place any human photos, provocative outlines, or cliché doctor stock images.",
+    "Install and use 'lucide-react' or '@phosphor-icons/react' for icons with a consistent thin stroke width."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Create depth through layered design elements with z-index hierarchy, but keep drop-shadows minimal.",
+    "DO NOT center align the app container. Left-align dense content for reading flow. Only center-align Hero text if it improves visual rhythm.",
+    "Apply subtle hover states to everything interactive. Static = dead.",
+    "DO NOT use AI assistant Emoji characters (🤖🧠💭💡) for icons.",
+    "Missing categories = you will use placeholder text which is FORBIDDEN. Use the provided Unsplash URLs.",
+    "Toast notifications must use Sonner, positioned bottom-right or top-center.",
+    "All interactive and key informational elements MUST include a data-testid attribute."
+  ]
+}

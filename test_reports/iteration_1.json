@@ -1,0 +1,61 @@
+{
+  "summary": "Full backend + frontend test pass for YONII. Backend: 23/23 pytest cases pass (root/health, chat moderation ALLOW+REDIRECT, symptom-check, mock payments order/verify, image-check 402/409/415 gating + happy path + delete, admin JWT login, stats, recent-chats/payments, KB CRUD, auth-required checks). A dedicated vision probe confirmed GPT-4o really receives the uploaded image (described a blue circle correctly). Frontend: age gate (confirm/reject/localStorage persistence), homepage (7 prompt pills, 6 hub cards, Rs9 CTA, footer), example-prompt auto-send chat, follow-up chat, all 6 hub routes, 4 legal pages, symptom checker, full Rs9 image-check mock-pay flow + delete, admin login/protected route/stats/recent lists/KB add+delete/logout, mobile hamburger nav and no horizontal overflow. Two real defects found: chat has no multi-turn memory, and AI markdown '#'/'##' headings render literally.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/chat", "issue": "Conversation context is NOT preserved. Re-posting with the same session_id returns 'I need a bit more context / could you let me know what specific concern' for a follow-up like 'Is it common in men over 40?'. LlmChat is constructed fresh per request and no prior turns are replayed, so every message is treated as turn 1. Reproduced by /app/backend/tests/test_chat_context.py (fails).", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "DELETE /api/image-check/{analysis_id}", "issue": "Unauthenticated and returns {ok:true} even for a non-existent/never-owned id (no 404). Any client that learns an analysis_id can delete records; should return 404 when delete_one matched 0."},
+      {"endpoint": "DELETE /api/admin/knowledge/{item_id}", "issue": "Returns ok:true for unknown ids; no 404 on 0 matched documents."},
+      {"endpoint": "app CORS", "issue": "allow_origins='*' combined with allow_credentials=True is an invalid CORS combination (browsers reject credentialed wildcard). Set explicit origins or drop allow_credentials."},
+      {"endpoint": "startup", "issue": "Deprecated @app.on_event('startup'/'shutdown') hooks; migrate to lifespan. Also the admin seed never re-hashes if ADMIN_PASSWORD in .env is later changed."},
+      {"endpoint": "POST /api/chat", "issue": "Raw user questions (highly sensitive sexual-health text, 1000 chars) are persisted in db.chats and exposed verbatim in /api/admin/recent-chats, which conflicts with the UI's 'No account - No history' privacy promise. Consider hashing/truncating or storing only the moderation verdict."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AIMessage.jsx", "issue": "Markdown ATX headings are not parsed - users see literal '# Educational Guidance: ...' and '## What to Avoid' in chat, symptom-checker and image-check output. Only '**bold**' lines are converted to headings. Add handling for lines starting with #, ##, ### (and '**Heading**:' with trailing colon, which also renders as plain paragraph).", "selector": "[data-testid=\"symptom-result\"], [data-testid=\"chat-message-1\"], [data-testid=\"image-check-result\"]", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "Chat follow-up", "issue": "UI correctly sends session_id but backend has no memory, so follow-up answers ask the user to restate context - looks broken to the user.", "affected_selectors": ["[data-testid=\"chat-input\"]", "[data-testid=\"chat-send\"]"]}
+    ],
+    "design_issues": [
+      {"screen": "AgeGate", "issues": ["Children are still mounted (blurred) behind the gate, so the Home page and its network work run before age confirmation - render null/placeholder instead.", "'I'm under 18' is a dead end: no way to go back to the 18+ choice without a reload."]},
+      {"screen": "Home hero (desktop 1920px)", "issues": ["Hero content is confined to the left ~45% with a large empty band on the right; consider a right-side visual or wider max-width."]},
+      {"screen": "Symptom checker", "issues": ["Severity uses the browser-native <select> ('Choose...') while the rest of the app is custom-styled; inconsistent with the shadcn/ui look."]},
+      {"screen": "Image check result", "issues": ["For a flat/uninformative photo GPT-4o sometimes replies 'I'm unable to view or analyze images' even though the image was received (verified separately) - paid users get a non-answer. Consider prompt hardening / a low-information-image guard, or refund messaging."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_vision_probe.py",
+    "/app/backend/tests/test_chat_context.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix multi-turn chat memory in POST /api/chat (replay prior turns for the session_id, e.g. from db.chats, or keep a per-session LlmChat history).",
+    "Fix AIMessage.jsx to render '#'/'##'/'###' markdown headings instead of printing the hash characters.",
+    "Return 404 from DELETE /api/image-check/{id} and DELETE /api/admin/knowledge/{id} when nothing was deleted.",
+    "Fix CORS allow_origins='*' + allow_credentials=True combination.",
+    "AgeGate: do not mount/blur the app behind the gate; add a way back from the 'under 18' state.",
+    "Reconsider storing raw chat questions verbatim given the 'no history' privacy promise."
+  ],
+  "critical_code_review_comments": [
+    "claude_chat() creates a new LlmChat per request with only a system message - session_id is cosmetic, so conversational continuity is impossible by construction.",
+    "delete_analysis() has no auth or existence check; combined with the always-200 response it silently succeeds on invalid ids.",
+    "Deprecated FastAPI on_event startup/shutdown hooks should be replaced with a lifespan context manager.",
+    "moderate() fails open to ALLOW on any LLM error - acceptable for availability, but it means a moderation outage disables BLOCK/REDIRECT protection entirely; add alerting/metric on moderation failure."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_vision_probe.py",
+    "/app/backend/tests/test_chat_context.py"
+  ],
+  "success_rate": {"backend": "96% (23/24 incl. context probe; only multi-turn context fails)", "frontend": "92% (all flows work; markdown heading rendering + chat continuity defects)"},
+  "seed_data_creation": "Mock Razorpay orders/verifications and a few TEST_ prefixed KB entries + image analyses (KB entries deleted after test; image analyses deleted via API where created by the flow test).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin@yonii.app / Admin@Yonii123 (verified working)",
+  "context_for_next_testing_agent": "Regression suite: /app/backend/tests/backend_test.py (23 pass). test_chat_context.py currently FAILS by design - it is the multi-turn memory bug; re-run after the fix. test_vision_probe.py proves image reaches gpt-4o (use a shape/colored image, NOT a flat color, or the model replies it cannot see images). Frontend: set localStorage yonii_age_confirmed_v1='yes' to bypass the age gate; the image-check file input is display:hidden so use wait_for_selector(state='attached') + set_input_files; mobile nav links use testids suffixed '-mobile' (e.g. nav-sti-mobile).",
+  "rca_of_the_issue": "Multi-turn failure: POST /api/chat instantiates emergentintegrations LlmChat per request with only MEDICAL_SYSTEM_PROMPT and the current user message; no prior turns are supplied, so the model has zero history despite a stable session_id being round-tripped. Markdown bug: AIMessage.jsx only recognises lines matching ^\\*\\*text\\*\\*$ as headings and treats every other line as a paragraph, so Claude/GPT ATX headings ('# ', '## ') are printed verbatim."
+}
