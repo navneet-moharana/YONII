@@ -148,6 +148,9 @@ export function Footer() {
         <div className="yonii-container py-4 text-xs text-[var(--yonii-muted)] flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>© {new Date().getFullYear()} YONII. For adults 18+. Educational information only.</div>
           <div className="font-editorial italic">Ask. Understand. Take care.</div>
+          <div data-testid="footer-founder-credit" className="tracking-[0.15em] uppercase text-[11px]">
+            by <span className="text-[var(--yonii-primary)] font-semibold">NAVNEET MOHARANA</span> (Founder)
+          </div>
         </div>
       </div>
     </footer>
