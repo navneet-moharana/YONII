@@ -206,6 +206,21 @@ class PeriodEntryOut(PeriodEntryIn):
     created_at: str
 
 
+class DailyLogIn(BaseModel):
+    date: str  # ISO YYYY-MM-DD
+    mood: Optional[int] = Field(default=None, ge=1, le=5)          # 1 = low, 5 = great
+    cramps: Optional[int] = Field(default=None, ge=0, le=5)        # 0 = none, 5 = severe
+    energy: Optional[int] = Field(default=None, ge=1, le=5)
+    sleep_hours: Optional[float] = Field(default=None, ge=0, le=24)
+    symptoms: List[str] = Field(default_factory=list)              # tags e.g. bloating, headache
+    notes: Optional[str] = Field(default=None, max_length=300)
+
+
+class SettingsIn(BaseModel):
+    reminder_lead_days: int = Field(default=1, ge=1, le=3)
+    browser_reminders: bool = True
+
+
 # ---- Helpers ---------------------------------------------------------------
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -681,11 +696,9 @@ async def period_prediction(user_id: str = Depends(require_period_user)):
         return {"has_data": False, "message": "Log at least one period to see predictions."}
 
     starts = [datetime.fromisoformat(d["start_date"]).date() for d in docs]
-    # Cycle lengths between consecutive starts
     cycles = [(starts[i] - starts[i - 1]).days for i in range(1, len(starts)) if 15 <= (starts[i] - starts[i - 1]).days <= 60]
     avg_cycle = round(sum(cycles) / len(cycles)) if cycles else 28
 
-    # Period length estimate
     lengths = []
     for d in docs:
         if d.get("end_date"):
@@ -700,6 +713,8 @@ async def period_prediction(user_id: str = Depends(require_period_user)):
     ovulation = next_start - timedelta(days=14)
     fertile_start = ovulation - timedelta(days=5)
     fertile_end = ovulation + timedelta(days=1)
+    today = datetime.now(timezone.utc).date()
+    days_until_next = (next_start - today).days
 
     return {
         "has_data": True,
@@ -710,9 +725,72 @@ async def period_prediction(user_id: str = Depends(require_period_user)):
         "predicted_ovulation": ovulation.isoformat(),
         "fertile_window_start": fertile_start.isoformat(),
         "fertile_window_end": fertile_end.isoformat(),
+        "days_until_next": days_until_next,
+        "cycles_history": cycles,
         "entries_logged": len(starts),
         "note": "Predictions are estimates based on your logged history and are for information only.",
     }
+
+
+# ---- Daily symptom logs ----------------------------------------------------
+@api.post("/period/logs")
+async def daily_log_upsert(body: DailyLogIn, user_id: str = Depends(require_period_user)):
+    _parse_iso_date(body.date)  # validate
+    payload = {
+        "user_id": user_id,
+        "date": body.date,
+        "mood": body.mood,
+        "cramps": body.cramps,
+        "energy": body.energy,
+        "sleep_hours": body.sleep_hours,
+        "symptoms": [s.strip().lower() for s in (body.symptoms or []) if s and s.strip()][:20],
+        "notes": (body.notes or "")[:300],
+        "updated_at": now_iso(),
+    }
+    existing = await db.daily_logs.find_one({"user_id": user_id, "date": body.date})
+    if existing:
+        await db.daily_logs.update_one({"_id": existing["_id"]}, {"$set": payload})
+        entry_id = existing["id"]
+    else:
+        entry_id = str(uuid.uuid4())
+        await db.daily_logs.insert_one({"id": entry_id, **payload, "created_at": now_iso()})
+    return {"id": entry_id, **{k: v for k, v in payload.items() if k != "user_id"}}
+
+
+@api.get("/period/logs")
+async def daily_logs_list(days: int = 180, user_id: str = Depends(require_period_user)):
+    cutoff = (datetime.now(timezone.utc).date() - timedelta(days=max(1, min(days, 365)))).isoformat()
+    docs = await db.daily_logs.find(
+        {"user_id": user_id, "date": {"$gte": cutoff}},
+        {"_id": 0, "user_id": 0}
+    ).sort("date", 1).to_list(1000)
+    return {"logs": docs}
+
+
+@api.delete("/period/logs/{log_id}")
+async def daily_log_delete(log_id: str, user_id: str = Depends(require_period_user)):
+    res = await db.daily_logs.delete_one({"id": log_id, "user_id": user_id})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Log not found")
+    return {"ok": True}
+
+
+# ---- User settings (reminders) --------------------------------------------
+DEFAULT_SETTINGS = {"reminder_lead_days": 1, "browser_reminders": True}
+
+
+@api.get("/period/settings")
+async def get_settings(user_id: str = Depends(require_period_user)):
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "settings": 1})
+    settings = (user or {}).get("settings") or DEFAULT_SETTINGS
+    return settings
+
+
+@api.put("/period/settings")
+async def update_settings(body: SettingsIn, user_id: str = Depends(require_period_user)):
+    settings = body.model_dump()
+    await db.users.update_one({"id": user_id}, {"$set": {"settings": settings}})
+    return settings
 
 
 app.include_router(api)
