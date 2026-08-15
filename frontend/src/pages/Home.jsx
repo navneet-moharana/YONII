@@ -128,7 +128,7 @@ export default function Home() {
         <Link to="/image-check" data-testid={TID.home.imageCheckCta} className="card-soft p-6 hover:border-[var(--yonii-accent)] transition bg-white">
           <Camera className="w-5 h-5 text-[var(--yonii-accent)]" />
           <div className="mt-3 font-display text-lg">Image Health Check</div>
-          <div className="text-sm text-[var(--yonii-muted)] mt-1">Something looks different? Get AI-guided educational feedback.</div>
+          <div className="text-sm text-[var(--yonii-muted)] mt-1">Skin concerns, intimate-area photos or lab reports — get AI-guided educational feedback.</div>
           <div className="mt-3 inline-flex items-center gap-2 text-sm">
             <span className="px-2 py-0.5 rounded-full bg-[var(--yonii-accent)] text-white text-xs font-medium">₹9</span>
             <span className="text-[var(--yonii-muted)]">per image · no subscription</span>

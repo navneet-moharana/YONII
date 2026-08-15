@@ -220,7 +220,8 @@ export const HUB_LIST = Object.values(HUBS).map((h) => ({
 
 export const EXAMPLE_PROMPTS = [
   "Is this symptom normal?",
-  "Why am I experiencing pain during sex?",
+  "Why is my period late or irregular?",
+  "How do I read my lab-test report?",
   "What can cause erectile difficulties?",
   "How can I reduce my STI risk?",
   "What contraception options are available?",

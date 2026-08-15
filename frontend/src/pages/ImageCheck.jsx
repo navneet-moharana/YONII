@@ -134,7 +134,7 @@ export default function ImageCheck() {
             Something looks different?
           </h1>
           <p className="mt-4 text-lg text-[var(--yonii-muted)] leading-relaxed">
-            Upload a photo of a visible sexual-health concern and receive AI-powered educational guidance. Not a diagnosis. Your image is processed in memory and discarded.
+            Upload a photo of any concern — a rash, bump or discolouration on your intimate or surrounding areas, a general skin problem, or even a photo of a lab report or prescription you'd like translated into plain English. YONII gives educational guidance, not a diagnosis. Your image is processed in memory and discarded.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3 text-xs">
@@ -163,7 +163,8 @@ export default function ImageCheck() {
                   <>
                     <ImagePlus className="w-8 h-8 text-[var(--yonii-primary)] mb-2" />
                     <div className="text-sm font-medium">Tap to select an image</div>
-                    <div className="text-xs text-[var(--yonii-muted)] mt-1">JPEG, PNG or WEBP · under 8 MB</div>
+                    <div className="text-xs text-[var(--yonii-muted)] mt-1">Skin concern · intimate area · lab report · prescription · medication</div>
+                    <div className="text-[11px] text-[var(--yonii-muted)] mt-1">JPEG, PNG or WEBP · under 8 MB</div>
                   </>
                 )}
                 <input
