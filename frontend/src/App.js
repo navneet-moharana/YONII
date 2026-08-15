@@ -10,6 +10,7 @@ import Hub from "@/pages/Hub";
 import SymptomChecker from "@/pages/SymptomChecker";
 import ImageCheck from "@/pages/ImageCheck";
 import PeriodTracker from "@/pages/PeriodTracker";
+import SharedCycle from "@/pages/SharedCycle";
 import Legal from "@/pages/Legal";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -54,6 +55,7 @@ export default function App() {
         <ScrollToTop />
         <Routes>
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/shared/:shareId" element={<SharedCycle />} />
           <Route
             path="/admin"
             element={

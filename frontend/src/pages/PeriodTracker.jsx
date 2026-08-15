@@ -2,10 +2,12 @@ import React from "react";
 import { http } from "@/lib/api";
 import Disclaimer from "@/components/Disclaimer";
 import { COMFORT_TIPS, SYMPTOM_TAGS } from "@/data/comfortTips";
+import BreathworkPlayer from "@/components/BreathworkPlayer";
 import {
   CalendarDays, Droplet, LogOut, Plus, Trash2, Sparkles, ShieldCheck, Bell,
   LineChart as LineIcon, HeartHandshake, Settings, ChevronRight, X,
   Flame, Cloud, Battery, Moon, Brain, Heart as HeartIcon, Apple,
+  Share2, Copy, Check,
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar,
@@ -268,7 +270,7 @@ function ScaleInput({ label, value, onChange, min = 0, max = 5, testid }) {
   );
 }
 
-function DailyLogTab({ token, logs, reload }) {
+function DailyLogTab({ token, logs, reload, onSuggestComfort }) {
   const today = new Date().toISOString().slice(0, 10);
   const existing = logs.find((l) => l.date === today) || {};
   const [state, setState] = React.useState({
@@ -282,6 +284,7 @@ function DailyLogTab({ token, logs, reload }) {
   });
   const [ok, setOk] = React.useState(false);
   const [err, setErr] = React.useState("");
+  const [suggestion, setSuggestion] = React.useState(null);
 
   React.useEffect(() => {
     const e = logs.find((l) => l.date === state.date) || {};
@@ -297,10 +300,21 @@ function DailyLogTab({ token, logs, reload }) {
   }));
 
   const save = async (e) => {
-    e.preventDefault(); setErr(""); setOk(false);
+    e.preventDefault(); setErr(""); setOk(false); setSuggestion(null);
     try {
       await http.post("/period/logs", state, withAuth(token));
       setOk(true); reload();
+      // Symptom → Comfort suggestion
+      const s = new Set(state.symptoms || []);
+      const suggest = (topic, title) => setSuggestion({ topic, title });
+      if ((state.cramps ?? 0) >= 4 || s.has("cramps"))              suggest("cramps", "cramp");
+      else if (s.has("bloating"))                                   suggest("bloating", "bloating");
+      else if (s.has("headache"))                                   suggest("headache", "headache");
+      else if (s.has("breast tenderness"))                          suggest("breast", "breast tenderness");
+      else if (s.has("insomnia") || (state.sleep_hours ?? 8) < 5)    suggest("sleep", "poor sleep");
+      else if ((state.mood ?? 3) <= 2 || s.has("anxious") || s.has("irritable")) suggest("pms", "mood");
+      else if ((state.energy ?? 3) <= 2 || s.has("fatigue"))         suggest("energy", "low energy");
+      else if (s.has("cravings"))                                    suggest("cravings", "cravings");
       setTimeout(() => setOk(false), 2500);
     } catch (ex) { setErr(ex?.response?.data?.detail || "Could not save."); }
   };
@@ -358,6 +372,30 @@ function DailyLogTab({ token, logs, reload }) {
 
         {err && <div className="text-sm text-[var(--yonii-accent)]">{err}</div>}
         {ok && <div className="text-sm text-[var(--yonii-primary)]">Saved ✓</div>}
+
+        {suggestion && (
+          <div data-testid="log-comfort-suggestion" className="rounded-2xl bg-[var(--yonii-surface)] border border-[var(--yonii-border)] p-4 flex items-start gap-3">
+            <HeartHandshake className="w-5 h-5 text-[var(--yonii-primary)] mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <div className="text-sm font-medium">Feeling {suggestion.title} today?</div>
+              <div className="text-xs text-[var(--yonii-muted)] mt-0.5">
+                YONII has a small set of things that often help. One tap to open the matching Comfort card.
+              </div>
+              <button
+                type="button"
+                data-testid="log-comfort-jump"
+                onClick={() => onSuggestComfort?.(suggestion.topic)}
+                className="btn-primary mt-3 text-sm inline-flex items-center gap-2"
+              >
+                Open comfort tips <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+            <button aria-label="Dismiss" onClick={() => setSuggestion(null)} className="text-[var(--yonii-muted)] hover:text-[var(--yonii-text)]">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         <button data-testid="log-save" type="submit" className="btn-primary w-full md:w-auto">Save daily log</button>
       </form>
 
@@ -468,48 +506,109 @@ function InsightsTab({ prediction, logs }) {
 }
 
 // ============ Comfort tab ================================================
-function ComfortTab() {
-  const [openId, setOpenId] = React.useState("cramps");
+function ComfortTab({ initialTopicId }) {
+  const [openId, setOpenId] = React.useState(initialTopicId || "cramps");
+  React.useEffect(() => { if (initialTopicId) setOpenId(initialTopicId); }, [initialTopicId]);
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="md:col-span-1 card-soft bg-white p-3 h-fit">
-        <ul className="text-sm">
-          {COMFORT_TIPS.map((t) => {
-            const Icon = ICON_MAP[t.icon] || HeartIcon;
-            return (
-              <li key={t.id}>
-                <button
-                  type="button"
-                  data-testid={`comfort-tab-${t.id}`}
-                  onClick={() => setOpenId(t.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
-                    openId === t.id ? "bg-[var(--yonii-surface)] text-[var(--yonii-text)]"
-                                    : "text-[var(--yonii-muted)] hover:text-[var(--yonii-text)] hover:bg-[var(--yonii-surface)]"}`}>
-                  <span className="flex items-center gap-2"><Icon className="w-4 h-4 text-[var(--yonii-primary)]" /> {t.title}</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </li>);
-          })}
-        </ul>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-1 card-soft bg-white p-3 h-fit">
+          <ul className="text-sm">
+            {COMFORT_TIPS.map((t) => {
+              const Icon = ICON_MAP[t.icon] || HeartIcon;
+              return (
+                <li key={t.id}>
+                  <button
+                    type="button"
+                    data-testid={`comfort-tab-${t.id}`}
+                    onClick={() => setOpenId(t.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
+                      openId === t.id ? "bg-[var(--yonii-surface)] text-[var(--yonii-text)]"
+                                      : "text-[var(--yonii-muted)] hover:text-[var(--yonii-text)] hover:bg-[var(--yonii-surface)]"}`}>
+                    <span className="flex items-center gap-2"><Icon className="w-4 h-4 text-[var(--yonii-primary)]" /> {t.title}</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </li>);
+            })}
+          </ul>
+        </div>
+        <div className="md:col-span-2 space-y-4">
+          {COMFORT_TIPS.filter((t) => t.id === openId).map((t) => (
+            <div key={t.id} data-testid={`comfort-panel-${t.id}`} className="card-soft bg-white p-6">
+              <h2 className="font-display text-2xl text-[var(--yonii-primary)] mb-1">{t.title}</h2>
+              <p className="text-sm text-[var(--yonii-muted)] mb-5">{t.intro}</p>
+              <div className="text-xs uppercase tracking-widest text-[var(--yonii-muted)] mb-2">Try</div>
+              <ul className="space-y-1.5 text-sm mb-5 list-disc pl-5">{t.tips.map((x, i) => <li key={i}>{x}</li>)}</ul>
+              <div className="text-xs uppercase tracking-widest text-[var(--yonii-muted)] mb-2">What to avoid</div>
+              <ul className="space-y-1.5 text-sm mb-5 list-disc pl-5">{t.avoid.map((x, i) => <li key={i}>{x}</li>)}</ul>
+              <div className="text-xs uppercase tracking-widest text-[var(--yonii-accent)] mb-2">When to see a doctor</div>
+              <p className="text-sm">{t.seeDoctor}</p>
+            </div>))}
+        </div>
       </div>
-      <div className="md:col-span-2 space-y-4">
-        {COMFORT_TIPS.filter((t) => t.id === openId).map((t) => (
-          <div key={t.id} data-testid={`comfort-panel-${t.id}`} className="card-soft bg-white p-6">
-            <h2 className="font-display text-2xl text-[var(--yonii-primary)] mb-1">{t.title}</h2>
-            <p className="text-sm text-[var(--yonii-muted)] mb-5">{t.intro}</p>
-            <div className="text-xs uppercase tracking-widest text-[var(--yonii-muted)] mb-2">Try</div>
-            <ul className="space-y-1.5 text-sm mb-5 list-disc pl-5">{t.tips.map((x, i) => <li key={i}>{x}</li>)}</ul>
-            <div className="text-xs uppercase tracking-widest text-[var(--yonii-muted)] mb-2">What to avoid</div>
-            <ul className="space-y-1.5 text-sm mb-5 list-disc pl-5">{t.avoid.map((x, i) => <li key={i}>{x}</li>)}</ul>
-            <div className="text-xs uppercase tracking-widest text-[var(--yonii-accent)] mb-2">When to see a doctor</div>
-            <p className="text-sm">{t.seeDoctor}</p>
-          </div>))}
-      </div>
+      <BreathworkPlayer />
     </div>
   );
 }
 
 // ============ Settings tab ==============================================
+function PartnerShare({ token }) {
+  const [shareId, setShareId] = React.useState(null);
+  const [copied, setCopied] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const url = shareId ? `${window.location.origin}/shared/${shareId}` : "";
+
+  const generate = async () => {
+    setBusy(true);
+    try {
+      const { data } = await http.post("/period/share", {}, withAuth(token));
+      setShareId(data.share_id);
+    } finally { setBusy(false); }
+  };
+  const revoke = async () => {
+    if (!window.confirm("Revoke this share link? The previous link will stop working.")) return;
+    setBusy(true);
+    try { await http.delete("/period/share", withAuth(token)); setShareId(null); }
+    finally { setBusy(false); }
+  };
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {}
+  };
+
+  return (
+    <div className="border-t border-[var(--yonii-border)] pt-5">
+      <div className="flex items-center gap-2 mb-1">
+        <Share2 className="w-4 h-4 text-[var(--yonii-primary)]" />
+        <div className="text-xs uppercase tracking-widest text-[var(--yonii-muted)]">Partner share</div>
+      </div>
+      <p className="text-sm text-[var(--yonii-muted)] mb-3">
+        Create a read-only link that shows your next period, ovulation day and fertile window. Your daily notes, symptoms and mood stay private.
+      </p>
+      {!shareId ? (
+        <button data-testid="settings-generate-share" type="button" onClick={generate} disabled={busy} className="btn-outline text-sm inline-flex items-center gap-2">
+          <Share2 className="w-4 h-4" /> Generate share link
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <input data-testid="settings-share-url" value={url} readOnly className="flex-1 min-w-0 bg-[var(--yonii-surface)] rounded-xl px-3 py-2 text-xs font-mono outline-none" />
+            <button data-testid="settings-copy-share" type="button" onClick={copy} className="btn-outline text-sm inline-flex items-center gap-2">
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <a href={url} target="_blank" rel="noreferrer" className="text-xs link-underline text-[var(--yonii-primary)]">Preview</a>
+            <button data-testid="settings-revoke-share" type="button" onClick={revoke} disabled={busy} className="text-xs text-[var(--yonii-accent)] link-underline">
+              Revoke link
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsTab({ token, settings, reloadSettings }) {
   const [lead, setLead] = React.useState(settings?.reminder_lead_days ?? 1);
   const [browser, setBrowser] = React.useState(settings?.browser_reminders ?? true);
@@ -570,6 +669,8 @@ function SettingsTab({ token, settings, reloadSettings }) {
 
         {ok && <div className="text-sm text-[var(--yonii-primary)]">Settings saved ✓</div>}
         <button data-testid="settings-save" type="submit" className="btn-primary">Save settings</button>
+
+        <PartnerShare token={token} />
       </form>
     </div>
   );
@@ -582,6 +683,12 @@ function Dashboard({ token, email, onLogout }) {
   const [logs, setLogs] = React.useState([]);
   const [settings, setSettings] = React.useState({ reminder_lead_days: 1, browser_reminders: true });
   const [tab, setTab] = React.useState("cycle");
+  const [comfortTopic, setComfortTopic] = React.useState(null);
+
+  const jumpToComfort = React.useCallback((topicId) => {
+    setComfortTopic(topicId);
+    setTab("comfort");
+  }, []);
 
   const reload = React.useCallback(async () => {
     try {
@@ -652,9 +759,9 @@ function Dashboard({ token, email, onLogout }) {
       </div>
 
       {tab === "cycle"    && <CycleTab   token={token} entries={entries} prediction={prediction} reload={reload} settings={settings} />}
-      {tab === "log"      && <DailyLogTab token={token} logs={logs} reload={reload} />}
+      {tab === "log"      && <DailyLogTab token={token} logs={logs} reload={reload} onSuggestComfort={jumpToComfort} />}
       {tab === "insights" && <InsightsTab prediction={prediction} logs={logs} />}
-      {tab === "comfort"  && <ComfortTab />}
+      {tab === "comfort"  && <ComfortTab initialTopicId={comfortTopic} />}
       {tab === "settings" && <SettingsTab token={token} settings={settings} reloadSettings={reloadSettings} />}
     </>
   );

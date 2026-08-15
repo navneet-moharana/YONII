@@ -793,4 +793,53 @@ async def update_settings(body: SettingsIn, user_id: str = Depends(require_perio
     return settings
 
 
+# ---- Partner read-only share ----------------------------------------------
+@api.post("/period/share")
+async def create_share(user_id: str = Depends(require_period_user)):
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "share_id": 1})
+    share_id = (user or {}).get("share_id")
+    if not share_id:
+        share_id = uuid.uuid4().hex[:24]
+        await db.users.update_one({"id": user_id}, {"$set": {"share_id": share_id, "share_created_at": now_iso()}})
+    return {"share_id": share_id}
+
+
+@api.delete("/period/share")
+async def revoke_share(user_id: str = Depends(require_period_user)):
+    await db.users.update_one({"id": user_id}, {"$unset": {"share_id": "", "share_created_at": ""}})
+    return {"ok": True}
+
+
+@api.get("/period/share/{share_id}")
+async def read_share(share_id: str):
+    user = await db.users.find_one({"share_id": share_id}, {"_id": 0, "id": 1})
+    if not user:
+        raise HTTPException(404, "Share link not found or has been revoked.")
+    docs = await db.period_entries.find(
+        {"user_id": user["id"]}, {"_id": 0, "start_date": 1, "end_date": 1}
+    ).sort("start_date", 1).to_list(500)
+    if not docs:
+        return {"has_data": False, "message": "This person hasn't logged any periods yet."}
+
+    starts = [datetime.fromisoformat(d["start_date"]).date() for d in docs]
+    cycles = [(starts[i] - starts[i - 1]).days for i in range(1, len(starts)) if 15 <= (starts[i] - starts[i - 1]).days <= 60]
+    avg_cycle = round(sum(cycles) / len(cycles)) if cycles else 28
+    last_start = starts[-1]
+    next_start = last_start + timedelta(days=avg_cycle)
+    ovulation = next_start - timedelta(days=14)
+    fertile_start = ovulation - timedelta(days=5)
+    fertile_end = ovulation + timedelta(days=1)
+    today = datetime.now(timezone.utc).date()
+    return {
+        "has_data": True,
+        "avg_cycle_length": avg_cycle,
+        "next_period_start": next_start.isoformat(),
+        "predicted_ovulation": ovulation.isoformat(),
+        "fertile_window_start": fertile_start.isoformat(),
+        "fertile_window_end": fertile_end.isoformat(),
+        "days_until_next": (next_start - today).days,
+        "note": "Predictions are estimates. This share only shows cycle predictions — daily notes and symptoms remain private.",
+    }
+
+
 app.include_router(api)
